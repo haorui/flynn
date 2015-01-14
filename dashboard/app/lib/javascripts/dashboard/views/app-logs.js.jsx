@@ -1,4 +1,5 @@
 //= require ../stores/app-jobs
+//= require ../stores/taffy-jobs
 //= require ./job-output
 //= require Modal
 
@@ -7,6 +8,7 @@
 "use strict";
 
 var AppJobsStore = Dashboard.Stores.AppJobs;
+var TaffyJobsStore = Dashboard.Stores.TaffyJobs;
 
 var Modal = window.Modal;
 
@@ -24,6 +26,9 @@ function getState (props) {
 	var appJobsState = AppJobsStore.getState(state.appJobsStoreId);
 	state.processes = appJobsState.processes;
 
+	var taffyJobsState = TaffyJobsStore.getStateForApp(props.taffyJobsStoreId, props.appId);
+	state.deployProcesses = taffyJobsState.processes;
+
 	return state;
 }
 
@@ -38,24 +43,59 @@ Dashboard.Views.AppLogs = React.createClass({
 						<h1>Process logs</h1>
 					</header>
 
-					<ul className="processes">
-						{this.state.processes.map(function (process) {
-							return (
-								<li key={process.id} onClick={function () {
-									this.__handleProcessSelected(process);
-								}.bind(this)} className={this.state.selectedProcess === process ? "selected" : null}>
-									{process.type}
-									<span className={"state "+ process.state}>{process.state}</span>
-								</li>
-							);
-						}, this)}
-					</ul>
+					{this.state.processes.length > 0 ? (
+						<ul className="processes">
+							{this.state.processes.map(function (process) {
+								return (
+									<li key={process.id} onClick={function () {
+										this.__handleProcessSelected(process);
+									}.bind(this)} className={this.state.selectedProcess === process ? "selected" : null}>
+										{process.type}
+										<span className={"state "+ process.state}>{process.state}</span>
+									</li>
+								);
+							}, this)}
+						</ul>
+					) : (
+						<p className="placeholder">There are no logs yet</p>
+					)}
 
 					<section className="log-output">
 						{this.state.selectedProcess ? (
 							<Dashboard.Views.JobOutput
 								appId={this.props.appId}
 								jobId={this.state.selectedProcess.id} />
+						) : null}
+					</section>
+				</section>
+
+				<section className="app-logs">
+					<header>
+						<h1>Deploy logs</h1>
+					</header>
+
+					{this.state.deployProcesses.length > 0 ? (
+						<ul className="processes">
+							{this.state.deployProcesses.map(function (process) {
+								return (
+									<li key={process.id} onClick={function () {
+										this.__handleDeployProcessSelected(process);
+									}.bind(this)} className={this.state.selectedDeployProcess === process ? "selected" : null}>
+										{process.type}
+										<span className={"state "+ process.state}>{process.state}</span>
+									</li>
+								);
+							}, this)}
+						</ul>
+					) : (
+						<p className="placeholder">There are no logs yet</p>
+					)}
+
+					<section className="log-output">
+						{this.state.selectedDeployProcess ? (
+							<Dashboard.Views.JobOutput
+								appId={this.props.appId}
+								jobId={this.state.selectedDeployProcess.id} />
 						) : null}
 					</section>
 				</section>
@@ -69,6 +109,7 @@ Dashboard.Views.AppLogs = React.createClass({
 
 	componentDidMount: function () {
 		AppJobsStore.addChangeListener(this.state.appJobsStoreId, this.__handleStoreChange);
+		TaffyJobsStore.addChangeListener(this.props.taffyJobsStoreId, this.__handleStoreChange);
 	},
 
 	componentWillReceiveProps: function (nextProps) {
@@ -83,6 +124,7 @@ Dashboard.Views.AppLogs = React.createClass({
 
 	componentWillUnmount: function () {
 		AppJobsStore.removeChangeListener(this.state.appJobsStoreId, this.__handleStoreChange);
+		TaffyJobsStore.removeChangeListener(this.props.taffyJobsStoreId, this.__handleStoreChange);
 	},
 
 	__handleStoreChange: function (props) {
@@ -92,6 +134,12 @@ Dashboard.Views.AppLogs = React.createClass({
 	__handleProcessSelected: function (process) {
 		this.setState({
 			selectedProcess: process
+		});
+	},
+
+	__handleDeployProcessSelected: function (process) {
+		this.setState({
+			selectedDeployProcess: process
 		});
 	}
 });

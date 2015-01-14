@@ -5,6 +5,25 @@
 (function () {
 "use strict";
 
+function createTaffyJob (client, taffyReleaseId, appID, appName, cloneURL, ref, sha, appData) {
+	return client.createTaffyJob({
+		release: taffyReleaseId,
+		cmd: [appName, cloneURL, ref, sha],
+		meta: {
+			app_id: appID
+		}
+	}).then(function (args) {
+		Dashboard.Dispatcher.handleStoreEvent({
+			name: "APP:JOB_CREATED",
+			appId: appID,
+			appName: appName,
+			appData: appData || null,
+			job: args[0]
+		});
+		return args;
+	});
+}
+
 var App = Dashboard.Stores.App = Dashboard.Store.createClass({
 	displayName: "Stores.App",
 
@@ -255,21 +274,7 @@ var App = Dashboard.Stores.App = Dashboard.Store.createClass({
 		function getTaffyRelease () {
 			return client.getTaffyRelease().then(function (args) {
 				var res = args[0];
-				return createTaffyJob(res.id);
-			});
-		}
-
-		function createTaffyJob (taffyReleaseId) {
-			return client.createTaffyJob({
-				release: taffyReleaseId,
-				cmd: [app.name, meta.clone_url, meta.ref, meta.sha]
-			}).then(function (args) {
-				Dashboard.Dispatcher.handleStoreEvent({
-					name: "APP:JOB_CREATED",
-					appId: __appId,
-					job: args[0]
-				});
-				return args;
+				return createTaffyJob(client, res.id, __appId, app.name, meta.clone_url, meta.ref, meta.sha);
 			});
 		}
 
@@ -443,23 +448,7 @@ App.createFromGithub = function (client, meta, appData) {
 	function getTaffyRelease () {
 		return client.getTaffyRelease().then(function (args) {
 			var res = args[0];
-			return createTaffyJob(res.id);
-		});
-	}
-
-	function createTaffyJob (taffyReleaseId) {
-		return client.createTaffyJob({
-			release: taffyReleaseId,
-			cmd: [appName, meta.clone_url, meta.ref, meta.sha]
-		}).then(function (args) {
-			Dashboard.Dispatcher.handleStoreEvent({
-				name: "APP:JOB_CREATED",
-				appId: appId,
-				appName: appName,
-				appData: appData,
-				job: args[0]
-			});
-			return args;
+			return createTaffyJob(client, res.id, appId, appName, meta.clone_url, meta.ref, meta.sha, appData);
 		});
 	}
 
